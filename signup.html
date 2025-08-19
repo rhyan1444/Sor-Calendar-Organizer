@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up — Schedule System (CSV)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50">
+  <div class="max-w-md mx-auto mt-12 p-8 bg-white rounded-2xl shadow">
+    <h1 class="text-2xl font-semibold mb-6">Create Account</h1>
+    <form id="signupForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Full Name</label>
+        <input required id="name" type="text" class="w-full border rounded-xl px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Email</label>
+        <input required id="email" type="email" class="w-full border rounded-xl px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Password</label>
+        <input required id="password" type="password" class="w-full border rounded-xl px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Role</label>
+        <select id="role" class="w-full border rounded-xl px-3 py-2">
+          <option value="staff">Staff (view only)</option>
+          <option value="admin">Admin (CRUD)</option>
+        </select>
+      </div>
+      <button class="w-full bg-black text-white rounded-xl py-2">Sign Up</button>
+      <p class="text-sm text-center">Already have an account?
+        <a class="text-blue-600 underline" href="login.html">Log in</a>
+      </p>
+    </form>
+  </div>
+
+<script>
+const USERS_KEY = 'users';
+function getUsers(){ return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }
+function saveUsers(users){ localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+
+document.getElementById('signupForm').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const password = document.getElementById('password').value;
+  const role = document.getElementById('role').value;
+
+  const users = getUsers();
+  if(users.find(u=>u.email===email)){ alert('Email already registered.'); return; }
+
+  users.push({ name, email, password, role, createdAt: Date.now() });
+  saveUsers(users);
+  alert('Account created! Please log in.');
+  window.location.href = 'login.html';
+});
+
+// Seed a default admin if none exists (for convenience)
+(function seedAdmin(){
+  const users = getUsers();
+  if(!users.some(u=>u.role==='admin')){
+    users.push({name:'Admin', email:'admin@example.com', password:'admin123', role:'admin', createdAt:Date.now()});
+    saveUsers(users);
+  }
+})();
+</script>
+</body>
+</html>

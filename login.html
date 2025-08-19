@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Log In — Schedule System (CSV)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50">
+  <div class="max-w-md mx-auto mt-12 p-8 bg-white rounded-2xl shadow">
+    <h1 class="text-2xl font-semibold mb-6">Welcome back</h1>
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Email</label>
+        <input required id="email" type="email" class="w-full border rounded-xl px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Password</label>
+        <input required id="password" type="password" class="w-full border rounded-xl px-3 py-2">
+      </div>
+      <button class="w-full bg-black text-white rounded-xl py-2">Log In</button>
+      <p class="text-sm text-center">No account?
+        <a class="text-blue-600 underline" href="signup.html">Sign up</a>
+      </p>
+    </form>
+  </div>
+
+<script>
+const USERS_KEY='users', SESSION_KEY='currentUser';
+function getUsers(){ return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }
+
+document.getElementById('loginForm').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const password = document.getElementById('password').value;
+  const user = getUsers().find(u=>u.email===email && u.password===password);
+  if(!user){ alert('Invalid credentials.'); return; }
+  localStorage.setItem(SESSION_KEY, JSON.stringify({email:user.email, name:user.name, role:user.role}));
+  window.location.href = user.role==='admin' ? 'index.html' : 'index2.html';
+});
+</script>
+</body>
+</html>

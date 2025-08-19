@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Staff Dashboard — Schedule System (CSV)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50">
+  <!-- HEADER -->
+  <header class="bg-white border-b shadow">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <h1 class="text-xl font-semibold">Staff Dashboard</h1>
+      <a href="login.html" id="logoutBtn" class="px-3 py-1.5 rounded-xl bg-black text-white w-full sm:w-auto text-center">Log out</a>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    <!-- CALENDAR -->
+    <section class="mb-6">
+      <h2 class="text-lg font-semibold mb-2">Calendar</h2>
+      <div id="calendar" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 text-center"></div>
+      <div class="flex flex-wrap gap-2 mt-3 text-sm">
+        <span class="px-2 py-1 bg-green-200 rounded">Done</span>
+        <span class="px-2 py-1 bg-red-200 rounded">Canceled</span>
+        <span class="px-2 py-1 bg-yellow-200 rounded">Rescheduled</span>
+        <span class="px-2 py-1 bg-blue-200 rounded">Pending</span>
+        <span class="px-2 py-1 bg-gray-200 rounded">Free Day</span>
+      </div>
+    </section>
+
+    <!-- TABLE -->
+    <section class="bg-white rounded-2xl shadow overflow-hidden">
+      <div class="p-4 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+        <h2 class="text-lg font-semibold">Schedules</h2>
+        <input id="search" class="border rounded-xl px-3 py-2 w-full md:w-80" placeholder="Search...">
+      </div>
+
+      <!-- Desktop Table -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="p-3 text-left">#</th>
+              <th class="p-3 text-left">Event</th>
+              <th class="p-3 text-left">Date</th>
+              <th class="p-3 text-left">Time</th>
+              <th class="p-3 text-left">Place</th>
+              <th class="p-3 text-left">Driver</th>
+              <th class="p-3 text-left">Team</th>
+              <th class="p-3 text-left">Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Cards -->
+      <div id="cardContainer" class="block md:hidden p-4 space-y-4"></div>
+    </section>
+  </main>
+
+<script>
+const CSV_KEY='schedules_csv', SESSION_KEY='currentUser';
+function requireStaff(){
+  const u = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+  if(!u){ window.location.href='login.html'; return; }
+  if(u.role!=='staff'){ window.location.href='admin-dashboard.html'; }
+}
+requireStaff();
+
+// CSV helpers
+function parseCsvLine(line){
+  const out=[], re=/(?:^|,)(?:"([^"]*(?:""[^"]*)*)"|([^",]*))/g;
+  line.replace(re,(m,g1,g2)=>{ out.push((g1||g2||'').replace(/""/g,'"')); });
+  return out;
+}
+function csvToArray(csv){
+  const lines = csv.trim()?csv.trim().split(/\r?\n/):[];
+  if(!lines.length) return [];
+  const header = lines[0].split(',');
+  return lines.slice(1).map(line=>{
+    const cells=parseCsvLine(line);
+    const obj={}; header.forEach((h,i)=>obj[h]=cells[i]??'');
+    return obj;
+  });
+}
+function getSchedules(){ let csv=localStorage.getItem(CSV_KEY); return csv?csvToArray(csv):[]; }
+
+// UI
+const tbody=document.getElementById('tbody');
+const cardContainer=document.getElementById('cardContainer');
+const search=document.getElementById('search');
+
+function statusBadge(status){
+  let colors={
+    'Done':'bg-green-200 text-green-800',
+    'Canceled':'bg-red-200 text-red-800',
+    'Rescheduled':'bg-yellow-200 text-yellow-800',
+    'Pending':'bg-blue-200 text-blue-800'
+  };
+  return `<span class="px-2 py-1 rounded ${colors[status]||'bg-gray-200'}">${status}</span>`;
+}
+
+// Format time to AM/PM
+function formatTime(t){
+  if(!t) return '';
+  let [h,m]=t.split(':');
+  h=parseInt(h,10);
+  let ampm=h>=12?'PM':'AM';
+  h=h%12||12;
+  return `${h}:${m} ${ampm}`;
+}
+
+function render(filter=''){
+  const rows=getSchedules();
+  const q=filter.toLowerCase();
+  const filtered=rows.filter(r=>{
+    const hay=[r.event,r.place,r.driver,r.team,r.status].join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+
+  // Table
+  tbody.innerHTML='';
+  filtered.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.className=i%2?'bg-gray-50':'bg-white';
+    tr.innerHTML=`
+      <td class="p-3">${i+1}</td>
+      <td class="p-3">${r.event}</td>
+      <td class="p-3">${r.date}</td>
+      <td class="p-3">${formatTime(r.time)}</td>
+      <td class="p-3">${r.place}</td>
+      <td class="p-3">${r.driver}</td>
+      <td class="p-3">${r.team}</td>
+      <td class="p-3">${statusBadge(r.status)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Cards
+  cardContainer.innerHTML='';
+  filtered.forEach((r,i)=>{
+    const div=document.createElement('div');
+    div.className="border rounded-xl p-3 shadow-sm";
+    div.innerHTML=`
+      <div class="font-semibold">${r.event}</div>
+      <div class="text-sm text-gray-600">${r.date} • ${formatTime(r.time)}</div>
+      <div class="text-sm">📍 ${r.place}</div>
+      <div class="text-sm">🚗 ${r.driver || '-'}</div>
+      <div class="text-sm">👥 ${r.team || '-'}</div>
+      <div class="mt-2">${statusBadge(r.status)}</div>`;
+    cardContainer.appendChild(div);
+  });
+
+  renderCalendar(rows);
+}
+
+// Calendar
+function renderCalendar(schedules){
+  const cal=document.getElementById('calendar');
+  cal.innerHTML='';
+  let now=new Date();
+  let year=now.getFullYear(), month=now.getMonth();
+  let firstDay=new Date(year,month,1).getDay();
+  let daysInMonth=new Date(year,month+1,0).getDate();
+
+  let statusByDate={};
+  schedules.forEach(s=>{ if(s.date){ statusByDate[s.date]=s.status; } });
+
+  for(let i=0;i<firstDay;i++){ cal.innerHTML+=`<div></div>`; }
+  for(let d=1;d<=daysInMonth;d++){
+    let dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    let status=statusByDate[dateStr]||'Free';
+    let colors={
+      'Done':'bg-green-200',
+      'Canceled':'bg-red-200',
+      'Rescheduled':'bg-yellow-200',
+      'Pending':'bg-blue-200',
+      'Free':'bg-gray-100'
+    };
+    cal.innerHTML+=`<div class="p-2 rounded ${colors[status]}">${d}</div>`;
+  }
+}
+
+// Search & Logout
+search.addEventListener('input',()=>render(search.value));
+document.getElementById('logoutBtn').addEventListener('click',()=>localStorage.removeItem(SESSION_KEY));
+
+render();
+</script>
+</body>
+</html>
