@@ -1,1 +1,3 @@
-name,email,password,role,createdAt
+admin@example.com,admin123,Admin,admin
+aldrinenano@gmail.com,12345,Aldrin Enano,admin
+kevin@gmail.com,123456,kevin Flo,staff
